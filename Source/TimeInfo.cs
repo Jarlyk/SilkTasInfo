@@ -11,6 +11,7 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
     internal static class TimeInfo {
         private static readonly FieldInfo TeleportingFieldInfo = typeof(CameraController).GetFieldInfo("teleporting");
         private static readonly FieldInfo TilemapDirtyFieldInfo = typeof(GameManager).GetFieldInfo("tilemapDirty");
+        private static readonly FieldInfo SceneLoadFieldInfo = typeof(GameManager).GetField("sceneLoad", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public static bool timeStart = false;
         private static bool timeEnd = false;
@@ -36,33 +37,73 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
             }
         }
 
-        private static GameState lastGameState;
-        private static bool lookForTeleporting;
-        private static bool wasLoading;
+        private static GameState lastGameState = GameState.INACTIVE;
+        private static bool lookForTeleporting = false;
+        private static bool wasLoading = false;
+        private static bool mmsRoomDupe = false;
 
         public static void OnPreRender(GameManager gameManager, StringBuilder infoBuilder) {
             string currentScene = gameManager.sceneName;
             string nextScene = gameManager.nextSceneName;
             GameState gameState = gameManager.GameState;
 
-            //TODO: Determine start/end logic based on autosplitter
-            timeStart = true;
-            timeEnd = false;
-            // if (!timeStart && (nextScene.Equals("Tutorial_01", StringComparison.OrdinalIgnoreCase) && gameState == GameState.ENTERING_LEVEL ||
-            //                    nextScene is "GG_Vengefly_V" or "GG_Boss_Door_Entrance" or "GG_Entrance_Cutscene" ||
-            //                    gameManager.hero_ctrl != null)) {
-            //     timeStart = true;
-            //     inGameTime = ConfigManager.StartingGameTime;
-            // }
+            //TODO: Determine end logic based on autosplitter
+            bool sceneLoadActivationAllowed = false;
+            object sceneLoad = SceneLoadFieldInfo.GetValue(gameManager);
+            if (sceneLoad == null) {
+                sceneLoadActivationAllowed = true;
+            }
+            else {
+                PropertyInfo activationAllowedProp = sceneLoad.GetType().GetProperty("IsActivationAllowed");
+                
+                if (activationAllowedProp != null) {
+                    sceneLoadActivationAllowed = (bool)activationAllowedProp.GetValue(sceneLoad);
+                }
+            }
+            
+            if (!timeStart && nextScene == "Tut_01" && sceneLoadActivationAllowed) {
+                // StartNewGame
+                timeStart = true;
+                inGameTime = ConfigManager.StartingGameTime;
+            }
 
-            // if (timeStart && !timeEnd && (nextScene.StartsWith("Cinematic_Ending", StringComparison.OrdinalIgnoreCase) ||
-            //                               nextScene == "GG_End_Sequence")) {
+            // if (timeStart && !timeEnd && ) {
             //     timeEnd = true;
             // }
 
             bool timePaused = false;
-            //TODO: Load removal logic goes here, once it's defined
+            
+            // migrated from https://github.com/AlexKnauth/silksong-autosplit-wasm/blob/master/src/lib.rs
+            try {
+                bool loadingMenu = (currentScene == "Quit_To_Menu")
+                    || (currentScene != "Menu_Title" && (string.IsNullOrEmpty(nextScene)
+                    || nextScene == "Menu_Title"));
+                if (gameState == GameState.PLAYING && lastGameState == GameState.MAIN_MENU) {
+                    lookForTeleporting = true;
+                }
+                if (lookForTeleporting && (gameState != GameState.PLAYING && gameState != GameState.ENTERING_LEVEL)) {
+                    lookForTeleporting = false;
+                }
+                if (gameState == GameState.LOADING && lastGameState == GameState.CUTSCENE && currentScene == "Opening_Sequence") {
+                    mmsRoomDupe = true;
+                }
+                else if (gameState == GameState.PLAYING) {
+                    mmsRoomDupe = false;
+                }
+                bool acceptingInput = gameManager.inputHandler.acceptingInput;
+                HeroTransitionState heroTransitionState = gameManager.hero_ctrl?.transitionState ?? HeroTransitionState.WAITING_TO_TRANSITION;
+                UIState uiState = gameManager.ui.uiState;
+                bool sceneLoadNull = (SceneLoadFieldInfo.GetValue(gameManager) == null);
 
+                timePaused = (lookForTeleporting)
+                    || ((gameState == GameState.PLAYING || gameState == GameState.ENTERING_LEVEL) && uiState != UIState.PLAYING)
+                    || (gameState != GameState.PLAYING && gameState != GameState.CUTSCENE && !acceptingInput && !mmsRoomDupe)
+                    || ((gameState == GameState.EXITING_LEVEL && (sceneLoadNull || sceneLoadActivationAllowed) && !mmsRoomDupe) || gameState == GameState.LOADING)
+                    || (heroTransitionState == HeroTransitionState.WAITING_TO_ENTER_LEVEL)
+                    || (uiState != UIState.PLAYING && (loadingMenu || (uiState != UIState.PAUSED && uiState != UIState.CUTSCENE && !string.IsNullOrEmpty(nextScene))) && nextScene != currentScene);
+            } catch {
+                // ignore
+            }
 
             lastGameState = gameState;
 
