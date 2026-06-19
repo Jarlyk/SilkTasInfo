@@ -17,6 +17,14 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
         private static bool timeEnd = false;
         private static float inGameTime = 0f;
         private static readonly int minorVersion = int.Parse(Constants.GAME_VERSION.Substring(2, 1));
+        private static readonly bool isVersionWithoutAdvancedGamepadMenu = minorVersion < 29280;
+
+        private static bool GetAnySlotBlackThreaded(GameManager gameManager) {
+            return (gameManager.ui?.slotOne?.IsBlackThreaded ?? false) ||
+                (gameManager.ui?.slotTwo?.IsBlackThreaded ?? false) ||
+                (gameManager.ui?.slotThree?.IsBlackThreaded ?? false) ||
+                (gameManager.ui?.slotFour?.IsBlackThreaded ?? false);
+        }
 
         private static string FormattedTime {
             get {
@@ -41,15 +49,18 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
         private static bool lookForTeleporting = false;
         private static bool wasLoading = false;
         private static bool mmsRoomDupe = false;
+        private static bool wasMaggoted = false;
 
         public static void OnPreRender(GameManager gameManager, StringBuilder infoBuilder) {
             string currentScene = gameManager.sceneName;
             string nextScene = gameManager.nextSceneName;
             GameState gameState = gameManager.GameState;
+            PlayerData playerData = gameManager.playerData;
+            bool isMaggoted = gameManager.hero_ctrl?.cState?.isMaggoted ?? false;
 
             //TODO: Determine end logic based on autosplitter
             bool sceneLoadActivationAllowed = false;
-            object sceneLoad = SceneLoadFieldInfo.GetValue(gameManager);
+            object sceneLoad = SceneLoadFieldInfo?.GetValue(gameManager);
             if (sceneLoad == null) {
                 sceneLoadActivationAllowed = true;
             }
@@ -61,15 +72,38 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
                 }
             }
             
-            if (!timeStart && nextScene == "Tut_01" && sceneLoadActivationAllowed) {
-                // StartNewGame
+            if (!timeStart && (ConfigManager.AutostartTimer
+                || (!ConfigManager.StartFromAutosave && (nextScene == "Tut_01" && sceneLoadActivationAllowed)) /* start from new save */
+                || (ConfigManager.StartFromAutosave && (currentScene == "Tut_01" && !playerData.disablePause && gameState == GameState.PLAYING)) /* start from autosave */)
+            ) {
                 timeStart = true;
                 inGameTime = ConfigManager.StartingGameTime;
             }
 
-            // if (timeStart && !timeEnd && ) {
-            //     timeEnd = true;
-            // }
+            if (timeStart && !timeEnd && (
+                (playerData != null && playerData.silkMax == 10 && playerData.silkSpoolParts == 0) /* 2sf */
+                || (playerData != null && playerData.maxHealthBase == 6 && playerData.heartPieces == 0) /* 4ms */
+                || (playerData != null && playerData.GetToolData("Rosary Magnet").IsUnlocked) /* 5tools */
+                || (playerData != null && playerData.spinnerDefeated) /* 10achievements */
+                || (playerData != null && playerData.HasSlabKeyB) /* 11keys */
+                || (playerData != null && playerData.maxHealthBase == 9 && playerData.heartPieces == 0) /* 16ms */
+                || (playerData != null && playerData.act2Started) /* act1 */
+                || (playerData != null && playerData.UnlockedCoralTowerStation) /* all bellways */
+                || (playerData != null && playerData.GetToolData("Flea Charm").IsUnlocked) /* awoo */
+                || (playerData != null && playerData.health > 0 && wasMaggoted && !isMaggoted) /* bath */
+                || (playerData != null && playerData.defeatedLace1) /* beer bottle */
+                || (playerData != null && playerData.BelltownDoctorConvo == 3) /* dapper slapper */
+                || (playerData != null && playerData.defeatedSplinterQueen) /* firewood */
+                || (playerData != null && playerData.GetToolData("Curve Claws").IsUnlocked) /* aussie */
+                || (playerData != null && playerData.GotGourmandReward) /* glutton */
+                || (playerData != null && playerData.defeatedLastJudge) /* ordinal */
+                || (playerData != null && playerData.UnlockedPeakStation) /* slab */
+                || (playerData != null && playerData.HasBoundCrestUpgrader) /* sylphsong */
+                || (currentScene.StartsWith("Cinematic_Ending")) /* any, twisted, te, 100 */
+                )
+            ) {
+                timeEnd = true;
+            }
 
             bool timePaused = false;
             
@@ -90,22 +124,26 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
                 else if (gameState == GameState.PLAYING) {
                     mmsRoomDupe = false;
                 }
-                bool acceptingInput = gameManager.inputHandler.acceptingInput;
+                bool acceptingInput = gameManager.inputHandler?.acceptingInput ?? false;
                 HeroTransitionState heroTransitionState = gameManager.hero_ctrl?.transitionState ?? HeroTransitionState.WAITING_TO_TRANSITION;
-                UIState uiState = gameManager.ui.uiState;
-                bool sceneLoadNull = (SceneLoadFieldInfo.GetValue(gameManager) == null);
+                UIState uiState = gameManager.ui?.uiState ?? UIState.INACTIVE;
+                MainMenuState menuState = gameManager.ui?.menuState ?? MainMenuState.MAIN_MENU;
+                bool sceneLoadNull = SceneLoadFieldInfo?.GetValue(gameManager) == null;
 
-                timePaused = (lookForTeleporting)
+                timePaused = ConfigManager.PauseTimer
+                    || lookForTeleporting
                     || ((gameState == GameState.PLAYING || gameState == GameState.ENTERING_LEVEL) && uiState != UIState.PLAYING)
-                    || (gameState != GameState.PLAYING && gameState != GameState.CUTSCENE && !acceptingInput && !mmsRoomDupe)
-                    || ((gameState == GameState.EXITING_LEVEL && (sceneLoadNull || sceneLoadActivationAllowed) && !mmsRoomDupe) || gameState == GameState.LOADING)
-                    || (heroTransitionState == HeroTransitionState.WAITING_TO_ENTER_LEVEL)
-                    || (uiState != UIState.PLAYING && (loadingMenu || (uiState != UIState.PAUSED && uiState != UIState.CUTSCENE && !string.IsNullOrEmpty(nextScene))) && nextScene != currentScene);
+                    || (gameState != GameState.PLAYING && gameState != GameState.CUTSCENE && uiState != UIState.CUTSCENE && !acceptingInput && !mmsRoomDupe)
+                    || ((gameState == GameState.EXITING_LEVEL && uiState != UIState.CUTSCENE && (sceneLoadNull || sceneLoadActivationAllowed) && !playerData.isInventoryOpen && !mmsRoomDupe) || gameState == GameState.LOADING)
+                    || (heroTransitionState == HeroTransitionState.WAITING_TO_ENTER_LEVEL && !playerData.isInventoryOpen)
+                    || (uiState != UIState.PLAYING && (loadingMenu || (uiState != UIState.PAUSED && uiState != UIState.CUTSCENE && !string.IsNullOrEmpty(nextScene))) && nextScene != currentScene)
+                    || (ConfigManager.PauseOnFileSelect && gameState == GameState.MAIN_MENU && uiState == UIState.MAIN_MENU_HOME && currentScene == "Menu_Title" && menuState == MainMenuState.SAVE_PROFILES && !GetAnySlotBlackThreaded(gameManager));
             } catch {
                 // ignore
             }
 
             lastGameState = gameState;
+            wasMaggoted = isMaggoted;
 
             if (timeStart && !timePaused && !timeEnd) {
                 inGameTime += Time.unscaledDeltaTime;
@@ -121,8 +159,8 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
             }
 
             var isLoading = gameState == GameState.EXITING_LEVEL ||
-                                            gameState == GameState.ENTERING_LEVEL ||
-                                            gameState == GameState.LOADING;
+                            gameState == GameState.ENTERING_LEVEL ||
+                            gameState == GameState.LOADING;
             var infoFlags = TasInfoFlags.None;
             if (ConfigManager.DisableFFDuringLoads) {
                 if (isLoading && !wasLoading) {
