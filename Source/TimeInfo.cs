@@ -52,6 +52,7 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
         private static bool wasMaggoted = false;
 
         public static void OnPreRender(GameManager gameManager, StringBuilder infoBuilder) {
+            string lastScene = gameManager.lastSceneName;
             string currentScene = gameManager.sceneName;
             string nextScene = gameManager.nextSceneName;
             GameState gameState = gameManager.GameState;
@@ -72,34 +73,36 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
                 }
             }
             
-            if (!timeStart && (ConfigManager.AutostartTimer
-                || (!ConfigManager.StartFromAutosave && (nextScene == "Tut_01" && sceneLoadActivationAllowed)) /* start from new save */
-                || (ConfigManager.StartFromAutosave && (currentScene == "Tut_01" && !playerData.disablePause && gameState == GameState.PLAYING)) /* start from autosave */)
+            if (!timeStart && (ConfigManager.StartTimer
+                || (ConfigManager.StartingSplit == "StartNewGame" && nextScene == "Tut_01" && sceneLoadActivationAllowed)
+                || (ConfigManager.StartingSplit == "Act1Start" && currentScene == "Tut_01" && !playerData.disablePause && gameState == GameState.PLAYING))
             ) {
                 timeStart = true;
                 inGameTime = ConfigManager.StartingGameTime;
             }
 
             if (timeStart && !timeEnd && (
-                (playerData != null && playerData.silkMax == 10 && playerData.silkSpoolParts == 0) /* 2sf */
-                || (playerData != null && playerData.maxHealthBase == 6 && playerData.heartPieces == 0) /* 4ms */
-                || (playerData != null && playerData.GetToolData("Rosary Magnet").IsUnlocked) /* 5tools */
-                || (playerData != null && playerData.spinnerDefeated) /* 10achievements */
-                || (playerData != null && playerData.HasSlabKeyB) /* 11keys */
-                || (playerData != null && playerData.maxHealthBase == 9 && playerData.heartPieces == 0) /* 16ms */
-                || (playerData != null && playerData.act2Started) /* act1 */
-                || (playerData != null && playerData.UnlockedCoralTowerStation) /* all bellways */
-                || (playerData != null && playerData.GetToolData("Flea Charm").IsUnlocked) /* awoo */
-                || (playerData != null && playerData.health > 0 && wasMaggoted && !isMaggoted) /* bath */
-                || (playerData != null && playerData.defeatedLace1) /* beer bottle */
-                || (playerData != null && playerData.BelltownDoctorConvo == 3) /* dapper slapper */
-                || (playerData != null && playerData.defeatedSplinterQueen) /* firewood */
-                || (playerData != null && playerData.GetToolData("Curve Claws").IsUnlocked) /* aussie */
-                || (playerData != null && playerData.GotGourmandReward) /* glutton */
-                || (playerData != null && playerData.defeatedLastJudge) /* ordinal */
-                || (playerData != null && playerData.UnlockedPeakStation) /* slab */
-                || (playerData != null && playerData.HasBoundCrestUpgrader) /* sylphsong */
-                || (currentScene.StartsWith("Cinematic_Ending")) /* any, twisted, te, 100 */
+                (ConfigManager.EndingSplit == "MossMotherTrans" && playerData.defeatedMossMother && lastScene != currentScene) // grotto
+                || (ConfigManager.EndingSplit == "Spool1" && playerData.silkMax == 10 && playerData.silkSpoolParts == 0) // 2sf
+                || (ConfigManager.EndingSplit == "Mask1" && playerData.maxHealthBase == 6 && playerData.heartPieces == 0) // 4ms
+                || (ConfigManager.EndingSplit == "MagnetiteBrooch" && playerData.GetToolData("Rosary Magnet").IsUnlocked) // 5tools
+                || (ConfigManager.EndingSplit == "Widow" && playerData.spinnerDefeated) // 10achievements
+                || (ConfigManager.EndingSplit == "SlabKeyHeretic" && playerData.HasSlabKeyB) // 11keys
+                || (ConfigManager.EndingSplit == "Mask4" && playerData.maxHealthBase == 9 && playerData.heartPieces == 0) // 16ms
+                || (ConfigManager.EndingSplit == "Act2Started" && playerData.act2Started) // act1
+                || (ConfigManager.EndingSplit == "BlastedStepsStation" && playerData.UnlockedCoralTowerStation) // all bellways
+                || (ConfigManager.EndingSplit == "PutrifiedDuctsStation" && playerData.UnlockedAqueductStation) // all bellways
+                || (ConfigManager.EndingSplit == "EggofFlealia" && playerData.GetToolData("Flea Charm").IsUnlocked) // awoo
+                || (ConfigManager.EndingSplit == "MaggotsRemoved" && playerData.health > 0 && wasMaggoted && !isMaggoted) // bath
+                || (ConfigManager.EndingSplit == "Lace1" && playerData.defeatedLace1) // beer bottle
+                || (ConfigManager.EndingSplit == "YarnabySlap" && playerData.BelltownDoctorConvo == 3) // dapper slapper
+                || (ConfigManager.EndingSplit == "SisterSplinter" && playerData.defeatedSplinterQueen) // firewood
+                || (ConfigManager.EndingSplit == "Curveclaw" && playerData.GetToolData("Curve Claws").IsUnlocked) // aussie
+                || (ConfigManager.EndingSplit == "GreatTasteReward" && playerData.GotGourmandReward) // glutton
+                || (ConfigManager.EndingSplit == "LastJudge" && playerData.defeatedLastJudge) // ordinal
+                || (ConfigManager.EndingSplit == "SlabStation" && playerData.UnlockedPeakStation) // slab
+                || (ConfigManager.EndingSplit == "Sylphsong" && playerData.HasBoundCrestUpgrader) // sylphsong
+                || (ConfigManager.EndingSplit == "EndingSplit" && currentScene.StartsWith("Cinematic_Ending")) // any, twisted, te, 100
                 )
             ) {
                 timeEnd = true;
@@ -150,8 +153,8 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
             }
 
             List<string> result = new();
-            if (!string.IsNullOrEmpty(gameManager.sceneName) && ConfigManager.ShowSceneName) {
-                result.Add(gameManager.sceneName);
+            if (!string.IsNullOrEmpty(currentScene) && ConfigManager.ShowSceneName) {
+                result.Add(currentScene);
             }
 
             if (inGameTime > 0 && ConfigManager.ShowTime) {
