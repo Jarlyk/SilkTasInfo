@@ -15,7 +15,7 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
 
         public static bool timeStart = false;
         private static bool timeEnd = false;
-        private static float inGameTime = 0f;
+        private static double inGameTime = 0f;
         private static readonly int minorVersion = int.Parse(Constants.GAME_VERSION.Substring(2, 1));
         private static readonly bool isVersionWithoutAdvancedGamepadMenu = minorVersion < 29280;
 
@@ -34,12 +34,12 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
                     return inGameTime.ToString("F2");
                 } else if (inGameTime < 3600) {
                     int minute = (int)(inGameTime / 60);
-                    float second = inGameTime - minute * 60;
+                    double second = inGameTime - minute * 60;
                     return $"{minute}:{second.ToString("F2").PadLeft(5, '0')}";
                 } else {
                     int hour = (int)(inGameTime / 3600);
                     int minute = (int)((inGameTime - hour * 3600) / 60);
-                    float second = inGameTime - hour * 3600 - minute * 60;
+                    double second = inGameTime - hour * 3600 - minute * 60;
                     return $"{hour}:{minute.ToString().PadLeft(2, '0')}:{second.ToString("F2").PadLeft(5, '0')}";
                 }
             }
