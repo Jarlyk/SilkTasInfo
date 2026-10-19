@@ -35,7 +35,7 @@ PauseTimer = false
 StartTimer = false
 StartingSplit = Act1Start
 EndingSplit = EndingSplit
-PauseOnFileSelect = true
+PauseOnMainMenu = true
 DisableFFDuringLoads = false
 
 # 碰撞箱颜色 ARGB 格式，注释或删除则不显示该类 hitbox
@@ -86,7 +86,7 @@ DisableCameraShake = false
         public static bool StartTimer => GetSettingValue<bool>(nameof(StartTimer), false);
         public static string StartingSplit => GetSettingValue<string>(nameof(StartingSplit), "Act1Start");
         public static string EndingSplit => GetSettingValue<string>(nameof(EndingSplit), "EndingSplit");
-        public static bool PauseOnFileSelect => GetSettingValue<bool>(nameof(PauseOnFileSelect), true);
+        public static bool PauseOnMainMenu => GetSettingValue<bool>(nameof(PauseOnMainMenu), true);
         public static float CameraZoom => Enabled ? GetSettingValue(nameof(CameraZoom), 1f) : 1f;
         public static bool CameraFollow => Enabled && GetSettingValue<bool>(nameof(CameraFollow));
         public static bool DisableCameraShake => Enabled && GetSettingValue<bool>(nameof(DisableCameraShake));

@@ -83,6 +83,7 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
 
             if (timeStart && !timeEnd && (
                 (ConfigManager.EndingSplit == "MossMotherTrans" && playerData.defeatedMossMother && lastScene != currentScene) // grotto
+                || (ConfigManager.EndingSplit == "SilkSpear" && playerData.hasNeedleThrow) // silk spear
                 || (ConfigManager.EndingSplit == "Spool1" && playerData.silkMax == 10 && playerData.silkSpoolParts == 0) // 2sf
                 || (ConfigManager.EndingSplit == "Mask1" && playerData.maxHealthBase == 6 && playerData.heartPieces == 0) // 4ms
                 || (ConfigManager.EndingSplit == "MagnetiteBrooch" && playerData.GetToolData("Rosary Magnet").IsUnlocked) // 5tools
@@ -140,7 +141,7 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
                     || ((gameState == GameState.EXITING_LEVEL && uiState != UIState.CUTSCENE && (sceneLoadNull || sceneLoadActivationAllowed) && !playerData.isInventoryOpen && !mmsRoomDupe) || gameState == GameState.LOADING)
                     || (heroTransitionState == HeroTransitionState.WAITING_TO_ENTER_LEVEL && !playerData.isInventoryOpen)
                     || (uiState != UIState.PLAYING && (loadingMenu || (uiState != UIState.PAUSED && uiState != UIState.CUTSCENE && !string.IsNullOrEmpty(nextScene))) && nextScene != currentScene)
-                    || (ConfigManager.PauseOnFileSelect && gameState == GameState.MAIN_MENU && uiState == UIState.MAIN_MENU_HOME && currentScene == "Menu_Title" && menuState == MainMenuState.SAVE_PROFILES && !GetAnySlotBlackThreaded(gameManager));
+                    || (ConfigManager.PauseOnMainMenu && gameState == GameState.MAIN_MENU && uiState == UIState.MAIN_MENU_HOME && currentScene == "Menu_Title" && !(menuState == MainMenuState.SAVE_PROFILES && GetAnySlotBlackThreaded(gameManager)));
             } catch {
                 // ignore
             }
