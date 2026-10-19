@@ -94,7 +94,7 @@ where you need to start the timer at a specific point in time in the encoding.
 MagnetiteBrooch, Widow, SlabKeyHeretic, Mask4, Act2Started, BlastedStepsStation, PutrifiedDuctsStation,
 EggofFlealia, MaggotsRemoved, Lace1, YarnabySlap, SisterSplinter, Curveclaw, GreatTasteReward, LastJudge,
 SlabStation, Sylphsong, EndingSplit.
-* `PauseOnFileSelect`: When true, the timer pauses on the file select menu if there are no black threaded slots.
+* `PauseOnMainMenu`: When true, the timer pauses on the file select menu if there are no black threaded slots.
 * `CameraZoom`: The camera zoom level.  This is useful when TASing large rooms where you want to be able to
 see distant enemies or colliders.  This is implemented in such a way that it shouldn't cause desyncs, so you
 can freely change this while TASing.

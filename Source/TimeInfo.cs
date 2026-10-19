@@ -141,7 +141,7 @@ namespace Assembly_CSharp.TasInfo.mm.Source {
                     || ((gameState == GameState.EXITING_LEVEL && uiState != UIState.CUTSCENE && (sceneLoadNull || sceneLoadActivationAllowed) && !playerData.isInventoryOpen && !mmsRoomDupe) || gameState == GameState.LOADING)
                     || (heroTransitionState == HeroTransitionState.WAITING_TO_ENTER_LEVEL && !playerData.isInventoryOpen)
                     || (uiState != UIState.PLAYING && (loadingMenu || (uiState != UIState.PAUSED && uiState != UIState.CUTSCENE && !string.IsNullOrEmpty(nextScene))) && nextScene != currentScene)
-                    || (ConfigManager.PauseOnFileSelect && gameState == GameState.MAIN_MENU && uiState == UIState.MAIN_MENU_HOME && currentScene == "Menu_Title" && !(menuState == MainMenuState.SAVE_PROFILES && GetAnySlotBlackThreaded(gameManager)));
+                    || (ConfigManager.PauseOnMainMenu && gameState == GameState.MAIN_MENU && uiState == UIState.MAIN_MENU_HOME && currentScene == "Menu_Title" && !(menuState == MainMenuState.SAVE_PROFILES && GetAnySlotBlackThreaded(gameManager)));
             } catch {
                 // ignore
             }
